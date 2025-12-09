@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Extensiones Cisco - Davivienda</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        :root {
+            --davivienda-red: #ED1C24;
+            --davivienda-dark-red: #C41E3A;
+            --davivienda-light-red: #FF4444;
+            --davivienda-gray: #4A4A4A;
+            --light-gray: #F5F5F5;
+            --border-gray: #E0E0E0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light-gray);
+            min-height: 100vh;
+        }
+
+        .top-bar {
+            background: white;
+            border-bottom: 3px solid var(--davivienda-red);
+            padding: 10px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--davivienda-red);
+        }
+
+        .divider {
+            width: 2px;
+            height: 30px;
+            background: var(--border-gray);
+        }
+
+        .page-title {
+            color: var(--davivienda-gray);
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 30px auto;
+            padding: 0 30px;
+        }
+
+        .main-header {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 5px solid var(--davivienda-red);
+        }
+
+        .main-header h1 {
+            color: var(--davivienda-gray);
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .main-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .controls-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--davivienda-red);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--davivienda-dark-red);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(237, 28, 36, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--davivienda-gray);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #333;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding-top: 20px;
+            border-top: 2px solid var(--light-gray);
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-group label {
+            font-size: 14px;
+            color: var(--davivienda-gray);
+            font-weight: 600;
+        }
+
+        select, input[type="text"] {
+            padding: 12px 16px;
+            border: 2px solid var(--border-gray);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--davivienda-red);
+            box-shadow: 0 0 0 3px rgba(237, 28, 36, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 5px solid;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+        }
+
+        .stat-card.registered {
+            border-left-color: #22C55E;
+        }
+
+        .stat-card.unregistered {
+            border-left-color: #EF4444;
+        }
+
+        .stat-card.none {
+            border-left-color: #9CA3AF;
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .stat-card.registered .stat-icon {
+            background: #DCFCE7;
+        }
+
+        .stat-card.unregistered .stat-icon {
+            background: #FEE2E2;
+        }
+
+        .stat-card.none .stat-icon {
+            background: #F3F4F6;
+        }
+
+        .stat-info h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-info .number {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--davivienda-gray);
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .chart-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .table-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--davivienda-red);
+            color: white;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        th:hover {
+            background: var(--davivienda-dark-red);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-gray);
+            color: var(--davivienda-gray);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: #FFF5F5;
+        }
+
+        .status-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .status-badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .status-badge.registered {
+            background: #DCFCE7;
+            color: #15803D;
+        }
+
+        .status-badge.unregistered {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .status-badge.none {
+            background: #F3F4F6;
+            color: #4B5563;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-registered {
+            background: #22C55E;
+        }
+
+        .status-unregistered {
+            background: #EF4444;
+        }
+
+        .status-none {
+            background: #9CA3AF;
+        }
+
+        .status-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .status-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            border: 2px solid var(--border-gray);
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 180px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .status-dropdown.active {
+            display: block;
+        }
+
+        .status-option {
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .status-option:hover {
+            background: #FFF5F5;
+        }
+
+        .status-option:first-child {
+            border-radius: 6px 6px 0 0;
+        }
+
+        .status-option:last-child {
+            border-radius: 0 0 6px 6px;
+        }
+
+        .last-updated {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+            background: white;
+            border-radius: 12px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 30px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+            color: var(--davivienda-red);
+        }
+
+        .empty-state h2 {
+            color: var(--davivienda-gray);
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+
+            .top-bar {
+                padding: 10px 15px;
+            }
+
+            .logo-section {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .divider {
+                display: none;
+            }
+
+            .main-header h1 {
+                font-size: 24px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="logo-section">
+            <div class="logo">DAVIVIENDA</div>
+            <div class="divider"></div>
+            <div class="page-title">Gestión de Extensiones Cisco</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-header">
+            <h1>📞 Dashboard de Extensiones Cisco</h1>
+            <p>Sistema de monitoreo y gestión de dispositivos telefónicos</p>
+        </div>
+
+        <div class="controls-card">
+            <div class="controls-row">
+                <div class="file-input-wrapper">
+                    <label for="fileInput" class="btn btn-primary">
+                        📁 Cargar Archivo Excel
+                    </label>
+                    <input type="file" id="fileInput" accept=".xlsx, .xls">
+                </div>
+                <button id="exportBtn" class="btn btn-secondary" style="display:none;">
+                    💾 Exportar Cambios
+                </button>
+            </div>
+
+            <div class="filters" id="filters" style="display:none;">
+                <div class="filter-group">
+                    <label>🔍 Filtrar por Estado:</label>
+                    <select id="statusFilter">
+                        <option value="">Todos los estados</option>
+                        <option value="Registered">✅ Registrados</option>
+                        <option value="Unregistered">❌ No Registrados</option>
+                        <option value="None">⚪ Sin Estado</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>📝 Buscar por Descripción:</label>
+                    <input type="text" id="descFilter" placeholder="Ingrese descripción...">
+                </div>
+                <div class="filter-group">
+                    <label>📱 Buscar por Extensión:</label>
+                    <input type="text" id="extFilter" placeholder="Ingrese extensión...">
+                </div>
+            </div>
+        </div>
+
+        <div id="statsContainer" style="display:none;">
+            <div class="stats-grid">
+                <div class="stat-card registered">
+                    <div class="stat-header">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <h3>Registrados</h3>
+                            <div class="number" id="regCount">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card unregistered">
+                    <div class="stat-header">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-info">
+                            <h3>No Registrados</h3>
+                            <div class="number" id="unregCount">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card none">
+                    <div class="stat-header">
+                        <div class="stat-icon">⚪</div>
+                        <div class="stat-info">
+                            <h3>Sin Estado</h3>
+                            <div class="number" id="noneCount">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h2 style="color: var(--davivienda-gray); margin-bottom: 20px; text-align: center;">
+                    📊 Distribución de Estados
+                </h2>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div id="emptyState" class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <h2>No hay datos cargados</h2>
+                <p>Por favor, cargue un archivo Excel para visualizar las extensiones</p>
+            </div>
+            <div class="table-wrapper" id="tableWrapper" style="display:none;">
+                <table id="dataTable">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="lastUpdated" class="last-updated" style="display:none;"></div>
+    </div>
+
+    <script>
+        let allData = [];
+        let chart = null;
+        let sortColumn = null;
+        let sortAscending = true;
+        let activeDropdown = null;
+
+        const fileInput = document.getElementById('fileInput');
+        const exportBtn = document.getElementById('exportBtn');
+        const statusFilter = document.getElementById('statusFilter');
+        const descFilter = document.getElementById('descFilter');
+        const extFilter = document.getElementById('extFilter');
+
+        fileInput.addEventListener('change', handleFile);
+        exportBtn.addEventListener('click', exportData);
+        statusFilter.addEventListener('change', filterData);
+        descFilter.addEventListener('input', filterData);
+        extFilter.addEventListener('input', filterData);
+
+        document.addEventListener('click', (e) => {
+            if (activeDropdown && !e.target.closest('.status-menu')) {
+                activeDropdown.classList.remove('active');
+                activeDropdown = null;
+            }
+        });
+
+        function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                
+                allData = jsonData;
+                displayData(allData);
+                updateStats();
+                updateChart();
+                
+                document.getElementById('filters').style.display = 'grid';
+                document.getElementById('statsContainer').style.display = 'block';
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('tableWrapper').style.display = 'block';
+                document.getElementById('lastUpdated').style.display = 'block';
+                document.getElementById('lastUpdated').textContent = `📅 Última actualización: ${new Date().toLocaleString('es-CO')}`;
+                exportBtn.style.display = 'inline-flex';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function excelDateToJSDate(excelDate) {
+            if (!excelDate || typeof excelDate !== 'number') return excelDate;
+            const date = new Date((excelDate - 25569) * 86400 * 1000);
+            return date.toLocaleString('es-CO', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function displayData(data) {
+            if (data.length === 0) return;
+
+            const headers = Object.keys(data[0]);
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+
+            thead.innerHTML = '<tr>' + headers.map(h => `<th onclick="sortTable('${h}')">${h} ⇅</th>`).join('') + '</tr>';
+            
+            tbody.innerHTML = data.map((row, idx) => {
+                // Encontrar el índice real en allData
+                const realIndex = allData.findIndex(r => 
+                    r.Extension === row.Extension && 
+                    r['Device Name (Line)'] === row['Device Name (Line)']
+                );
+                
+                return '<tr>' + headers.map(header => {
+                    if (header === 'Status') {
+                        const status = row[header] || 'None';
+                        const statusClass = status.toLowerCase().replace(' ', '-');
+                        return `<td>
+                            <div class="status-menu">
+                                <div class="status-badge ${statusClass}" onclick="toggleStatusMenu(event, ${realIndex})">
+                                    <span class="status-indicator status-${statusClass}"></span>
+                                    ${status}
+                                </div>
+                                <div class="status-dropdown" id="dropdown-${realIndex}">
+                                    <div class="status-option" onclick="changeStatus(${realIndex}, 'Registered')">
+                                        <span class="status-indicator status-registered"></span>
+                                        Registered
+                                    </div>
+                                    <div class="status-option" onclick="changeStatus(${realIndex}, 'Unregistered')">
+                                        <span class="status-indicator status-unregistered"></span>
+                                        Unregistered
+                                    </div>
+                                    <div class="status-option" onclick="changeStatus(${realIndex}, 'None')">
+                                        <span class="status-indicator status-none"></span>
+                                        None
+                                    </div>
+                                </div>
+                            </div>
+                        </td>`;
+                    }
+                    if ((header.includes('Last') || header.includes('Date')) && typeof row[header] === 'number') {
+                        return `<td>${excelDateToJSDate(row[header])}</td>`;
+                    }
+                    return `<td>${row[header] || ''}</td>`;
+                }).join('') + '</tr>';
+            }).join('');
+        }
+
+        function toggleStatusMenu(event, index) {
+            event.stopPropagation();
+            const dropdown = document.getElementById(`dropdown-${index}`);
+            
+            if (activeDropdown && activeDropdown !== dropdown) {
+                activeDropdown.classList.remove('active');
+            }
+            
+            dropdown.classList.toggle('active');
+            activeDropdown = dropdown.classList.contains('active') ? dropdown : null;
+        }
+
+        function changeStatus(index, newStatus) {
+            allData[index].Status = newStatus;
+            if (activeDropdown) {
+                activeDropdown.classList.remove('active');
+                activeDropdown = null;
+            }
+            filterData();
+            updateStats();
+            updateChart();
+        }
+
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortAscending = !sortAscending;
+            } else {
+                sortColumn = column;
+                sortAscending = true;
+            }
+
+            allData.sort((a, b) => {
+                let valA = a[column] || '';
+                let valB = b[column] || '';
+                
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+
+                if (valA < valB) return sortAscending ? -1 : 1;
+                if (valA > valB) return sortAscending ? 1 : -1;
+                return 0;
+            });
+
+            filterData();
+        }
+
+        function filterData() {
+            const statusVal = statusFilter.value.toLowerCase();
+            const descVal = descFilter.value.toLowerCase();
+            const extVal = extFilter.value.toLowerCase();
+
+            const filtered = allData.filter(row => {
+                const status = (row.Status || 'None').toLowerCase();
+                const desc = (row.Description || '').toLowerCase();
+                const ext = (row.Extension || '').toString().toLowerCase();
+
+                return (!statusVal || status === statusVal) &&
+                       (!descVal || desc.includes(descVal)) &&
+                       (!extVal || ext.includes(extVal));
+            });
+
+            displayData(filtered);
+        }
+
+        function updateStats() {
+            const registered = allData.filter(r => r.Status === 'Registered').length;
+            const unregistered = allData.filter(r => r.Status === 'Unregistered').length;
+            const none = allData.filter(r => !r.Status || r.Status === 'None').length;
+
+            document.getElementById('regCount').textContent = registered;
+            document.getElementById('unregCount').textContent = unregistered;
+            document.getElementById('noneCount').textContent = none;
+        }
+
+        function updateChart() {
+            const registered = allData.filter(r => r.Status === 'Registered').length;
+            const unregistered = allData.filter(r => r.Status === 'Unregistered').length;
+            const none = allData.filter(r => !r.Status || r.Status === 'None').length;
+
+            const ctx = document.getElementById('statusChart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Registered', 'Unregistered', 'None'],
+                    datasets: [{
+                        data: [registered, unregistered, none],
+                        backgroundColor: [
+                            '#22C55E',
+                            '#EF4444',
+                            '#9CA3AF'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                                },
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportData() {
+            const ws = XLSX.utils.json_to_sheet(allData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Extensiones Cisco");
+            XLSX.writeFile(wb, `cisco_phones_davivienda_${new Date().getTime()}.xlsx`);
+        }
+    </script>
+</body>
+</html>
