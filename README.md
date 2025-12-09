@@ -1,0 +1,1 @@
+# Estado_de_Dispositivos
